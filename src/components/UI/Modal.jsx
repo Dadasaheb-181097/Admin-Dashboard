@@ -6,6 +6,7 @@ import { X } from 'lucide-react'
 import { useEffect } from 'react'
 
 const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
+  // All hooks must be called before any early returns
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
@@ -17,6 +18,20 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
     }
   }, [isOpen])
 
+  // Handle ESC key
+  useEffect(() => {
+    if (!isOpen) return
+    
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [isOpen, onClose])
+
+  // Early return after all hooks
   if (!isOpen) return null
 
   const sizeClasses = {
@@ -26,17 +41,6 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
     xl: 'max-w-4xl',
     full: 'max-w-7xl',
   }
-
-  // Handle ESC key
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose()
-      }
-    }
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [isOpen, onClose])
 
   return (
     <div

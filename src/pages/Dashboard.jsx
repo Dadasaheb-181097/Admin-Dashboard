@@ -160,7 +160,7 @@ function Dashboard() {
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent mb-2">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent mb-2">
               Dashboard
             </h1>
             <p className="text-lg text-gray-600 dark:text-gray-400">Welcome back! Here's what's happening with your business today.</p>

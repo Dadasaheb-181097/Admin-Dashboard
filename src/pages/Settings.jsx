@@ -17,8 +17,8 @@ function Settings() {
       loginAlerts: true,
     },
     profile: {
-      name: 'Admin User',
-      email: 'admin@example.com',
+      name: 'Dadaso Patil',
+      email: 'dadasaheb181097@gmail.com',
       language: 'en',
       timezone: 'UTC',
     },
@@ -85,7 +85,7 @@ function Settings() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">Settings</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Settings</h1>
           <p className="text-gray-600 dark:text-gray-400">Manage your account settings and preferences</p>
         </div>
         <Button variant="primary" className="flex items-center">

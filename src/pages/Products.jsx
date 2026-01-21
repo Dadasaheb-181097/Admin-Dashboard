@@ -85,7 +85,7 @@ function Products() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">Products</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Products</h1>
           <p className="text-gray-600 dark:text-gray-400">Manage your product inventory</p>
         </div>
         <Button variant="primary" onClick={handleAddProduct} className="flex items-center">
