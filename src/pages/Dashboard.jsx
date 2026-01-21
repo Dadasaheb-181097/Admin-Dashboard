@@ -14,14 +14,21 @@ import {
   Clock,
   Activity,
   Star,
-  Zap
+  Zap,
+  Target,
+  Globe,
+  CheckCircle2
 } from 'lucide-react'
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { salesData, dashboardStats, orders, products } from '../data/sampleData'
 import Card from '../components/UI/Card'
 import Badge from '../components/UI/Badge'
+import ChartTooltip from '../components/Charts/ChartTooltip'
+import ChartDefs from '../components/Charts/ChartDefs'
+import { useChartTheme, chartColors } from '../components/Charts/useChartTheme'
+import CountUp from 'react-countup'
 
-const StatCard = ({ title, value, change, icon: Icon, index, gradient }) => {
+const StatCard = ({ title, value, valueFormatter, change, icon: Icon, index, gradient }) => {
   const isPositive = change >= 0
   const gradients = {
     blue: 'from-blue-500 to-blue-600',
@@ -45,20 +52,28 @@ const StatCard = ({ title, value, change, icon: Icon, index, gradient }) => {
       <div className="relative flex items-center justify-between">
         <div className="flex-1">
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-1 font-medium">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">{value}</p>
+          <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2 tabular-nums">
+            <CountUp
+              end={Number(value) || 0}
+              duration={1.0}
+              delay={index * 0.09}
+              formattingFn={valueFormatter}
+              preserveValue
+            />
+          </p>
           <div className="flex items-center">
             {isPositive ? (
               <div className="flex items-center bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-lg">
                 <TrendingUp className="text-green-600 dark:text-green-400 mr-1" size={14} />
                 <span className="text-xs font-semibold text-green-600 dark:text-green-400">
-                  +{Math.abs(change)}%
+                  +<CountUp end={Math.abs(change)} decimals={1} duration={0.9} delay={0.25 + index * 0.09} preserveValue />%
                 </span>
               </div>
             ) : (
               <div className="flex items-center bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-lg">
                 <TrendingDown className="text-red-600 dark:text-red-400 mr-1" size={14} />
                 <span className="text-xs font-semibold text-red-600 dark:text-red-400">
-                  {Math.abs(change)}%
+                  <CountUp end={Math.abs(change)} decimals={1} duration={0.9} delay={0.25 + index * 0.09} preserveValue />%
                 </span>
               </div>
             )}
@@ -132,6 +147,7 @@ const TopProductCard = ({ product, index }) => {
 }
 
 function Dashboard() {
+  const chart = useChartTheme()
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -146,12 +162,63 @@ function Dashboard() {
   // Top products by sales
   const topProducts = [...products].sort((a, b) => b.sales - a.sales).slice(0, 5)
 
+  // Extra dashboard content (realistic “ops” snapshot)
+  const trafficSources = [
+    { name: 'Organic', value: 42, color: chartColors.primary },
+    { name: 'Paid', value: 26, color: chartColors.violet },
+    { name: 'Social', value: 18, color: chartColors.success },
+    { name: 'Referral', value: 14, color: chartColors.amber },
+  ]
+
+  const funnelData = [
+    { stage: 'Visited', value: 12000 },
+    { stage: 'Added to Cart', value: 6400 },
+    { stage: 'Checkout', value: 3200 },
+    { stage: 'Paid', value: 2311 },
+  ]
+
+  const goals = [
+    { label: 'Revenue Goal', current: 280000, target: 350000, color: 'bg-sky-500' },
+    { label: 'Orders Goal', current: 911, target: 1200, color: 'bg-emerald-500' },
+    { label: 'New Users', current: 328, target: 500, color: 'bg-violet-500' },
+  ]
+
+  const goalProgress = (current, target) => Math.min(100, Math.round((current / target) * 100))
+
   // Quick stats
   const quickStats = [
-    { label: 'Avg Order Value', value: formatCurrency(305.50), icon: DollarSign, color: 'text-blue-600 dark:text-blue-400' },
-    { label: 'Conversion Rate', value: '3.24%', icon: Activity, color: 'text-green-600 dark:text-green-400' },
-    { label: 'Active Sessions', value: '1,234', icon: Zap, color: 'text-purple-600 dark:text-purple-400' },
-    { label: 'Response Time', value: '0.8s', icon: Clock, color: 'text-orange-600 dark:text-orange-400' },
+    {
+      label: 'Avg Order Value',
+      value: 305.5,
+      decimals: 1,
+      formatter: (v) => `$${v.toFixed(1)}`,
+      icon: DollarSign,
+      color: 'text-blue-600 dark:text-blue-400',
+    },
+    {
+      label: 'Conversion Rate',
+      value: 3.24,
+      decimals: 2,
+      formatter: (v) => `${v.toFixed(2)}%`,
+      icon: Activity,
+      color: 'text-green-600 dark:text-green-400',
+    },
+    {
+      label: 'Active Sessions',
+      value: 1234,
+      decimals: 0,
+      formatter: (v) => v.toLocaleString(),
+      icon: Zap,
+      color: 'text-purple-600 dark:text-purple-400',
+    },
+    {
+      label: 'Response Time',
+      value: 0.8,
+      decimals: 1,
+      formatter: (v) => `${v.toFixed(1)}s`,
+      icon: Clock,
+      color: 'text-orange-600 dark:text-orange-400',
+    },
   ]
 
   return (
@@ -160,7 +227,7 @@ function Dashboard() {
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent mb-2">
+            <h1 className="text-3xl font-semibold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent mb-2">
               Dashboard
             </h1>
             <p className="text-lg text-gray-600 dark:text-gray-400">Welcome back! Here's what's happening with your business today.</p>
@@ -176,7 +243,8 @@ function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Revenue"
-          value={formatCurrency(dashboardStats.totalRevenue)}
+          value={dashboardStats.totalRevenue}
+          valueFormatter={(v) => formatCurrency(v)}
           change={dashboardStats.revenueGrowth}
           icon={DollarSign}
           index={0}
@@ -184,7 +252,8 @@ function Dashboard() {
         />
         <StatCard
           title="Total Orders"
-          value={dashboardStats.totalOrders.toLocaleString()}
+          value={dashboardStats.totalOrders}
+          valueFormatter={(v) => v.toLocaleString()}
           change={dashboardStats.ordersGrowth}
           icon={ShoppingCart}
           index={1}
@@ -192,7 +261,8 @@ function Dashboard() {
         />
         <StatCard
           title="Total Users"
-          value={dashboardStats.totalUsers.toLocaleString()}
+          value={dashboardStats.totalUsers}
+          valueFormatter={(v) => v.toLocaleString()}
           change={dashboardStats.usersGrowth}
           icon={Users}
           index={2}
@@ -200,7 +270,8 @@ function Dashboard() {
         />
         <StatCard
           title="Total Products"
-          value={dashboardStats.totalProducts.toLocaleString()}
+          value={dashboardStats.totalProducts}
+          valueFormatter={(v) => v.toLocaleString()}
           change={dashboardStats.productsGrowth}
           icon={Package}
           index={3}
@@ -214,7 +285,16 @@ function Dashboard() {
           <Card key={index} className="text-center animate-fade-in" style={{ animationDelay: `${400 + index * 50}ms` }}>
             <stat.icon className={`${stat.color} mx-auto mb-2`} size={24} />
             <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{stat.label}</p>
-            <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{stat.value}</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">
+              <CountUp
+                end={Number(stat.value) || 0}
+                duration={0.9}
+                delay={0.45 + index * 0.08}
+                decimals={stat.decimals ?? 0}
+                formattingFn={stat.formatter}
+                preserveValue
+              />
+            </p>
           </Card>
         ))}
       </div>
@@ -235,40 +315,22 @@ function Dashboard() {
           </div>
           <ResponsiveContainer width="100%" height={320}>
             <AreaChart data={salesData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.4}/>
-                  <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" />
-              <XAxis 
-                dataKey="month" 
-                tick={{ fill: 'currentColor', fontSize: 12 }}
-                className="text-gray-600 dark:text-gray-400"
-              />
-              <YAxis 
-                tick={{ fill: 'currentColor', fontSize: 12 }}
-                className="text-gray-600 dark:text-gray-400"
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                  border: '1px solid #e5e7eb', 
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-                  padding: '12px'
-                }}
-              />
+              <ChartDefs />
+              <CartesianGrid {...chart.grid} />
+              <XAxis dataKey="month" {...chart.axis} />
+              <YAxis {...chart.axis} />
+              <Tooltip content={<ChartTooltip />} cursor={{ stroke: chart.gridStroke, strokeWidth: 1 }} />
               <Area 
                 type="monotone" 
                 dataKey="sales" 
-                stroke="#0ea5e9" 
+                stroke={chartColors.primary}
                 fillOpacity={1} 
-                fill="url(#colorSales)"
-                strokeWidth={3}
-                animationDuration={1500}
-                animationBegin={0}
+                fill="url(#gradPrimary)"
+                strokeWidth={3.25}
+                dot={false}
+                activeDot={{ r: 6, strokeWidth: 0 }}
+                animationDuration={1600}
+                animationEasing="ease-out"
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -288,45 +350,32 @@ function Dashboard() {
           </div>
           <ResponsiveContainer width="100%" height={320}>
             <LineChart data={salesData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" />
-              <XAxis 
-                dataKey="month" 
-                tick={{ fill: 'currentColor', fontSize: 12 }}
-                className="text-gray-600 dark:text-gray-400"
-              />
-              <YAxis 
-                tick={{ fill: 'currentColor', fontSize: 12 }}
-                className="text-gray-600 dark:text-gray-400"
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                  border: '1px solid #e5e7eb', 
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-                  padding: '12px'
-                }}
-              />
-              <Legend />
+              <CartesianGrid {...chart.grid} />
+              <XAxis dataKey="month" {...chart.axis} />
+              <YAxis {...chart.axis} />
+              <Tooltip content={<ChartTooltip />} cursor={{ stroke: chart.gridStroke, strokeWidth: 1 }} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
               <Line 
                 type="monotone" 
                 dataKey="orders" 
-                stroke="#10b981" 
+                stroke={chartColors.success}
                 strokeWidth={3}
-                dot={{ fill: '#10b981', r: 5, strokeWidth: 2, stroke: '#fff' }}
-                activeDot={{ r: 8, strokeWidth: 2 }}
+                dot={false}
+                activeDot={{ r: 6, strokeWidth: 0 }}
                 animationDuration={1500}
-                animationBegin={200}
+                animationBegin={120}
+                animationEasing="ease-out"
               />
               <Line 
                 type="monotone" 
                 dataKey="users" 
-                stroke="#8b5cf6" 
+                stroke={chartColors.violet}
                 strokeWidth={3}
-                dot={{ fill: '#8b5cf6', r: 5, strokeWidth: 2, stroke: '#fff' }}
-                activeDot={{ r: 8, strokeWidth: 2 }}
+                dot={false}
+                activeDot={{ r: 6, strokeWidth: 0 }}
                 animationDuration={1500}
-                animationBegin={400}
+                animationBegin={260}
+                animationEasing="ease-out"
               />
             </LineChart>
           </ResponsiveContainer>
@@ -345,39 +394,26 @@ function Dashboard() {
           </div>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={salesData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" />
-              <XAxis 
-                dataKey="month" 
-                tick={{ fill: 'currentColor', fontSize: 12 }}
-                className="text-gray-600 dark:text-gray-400"
-              />
-              <YAxis 
-                tick={{ fill: 'currentColor', fontSize: 12 }}
-                className="text-gray-600 dark:text-gray-400"
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                  border: '1px solid #e5e7eb', 
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-                  padding: '12px'
-                }}
-              />
-              <Legend />
+              <ChartDefs />
+              <CartesianGrid {...chart.grid} />
+              <XAxis dataKey="month" {...chart.axis} />
+              <YAxis {...chart.axis} />
+              <Tooltip content={<ChartTooltip />} cursor={{ fill: chart.isDark ? 'rgba(148,163,184,0.06)' : 'rgba(148,163,184,0.10)' }} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
               <Bar 
                 dataKey="sales" 
-                fill="#0ea5e9" 
-                radius={[12, 12, 0, 0]} 
-                animationDuration={1500}
-                animationBegin={0}
+                fill="url(#gradPrimary)"
+                radius={[10, 10, 2, 2]} 
+                animationDuration={1400}
+                animationEasing="ease-out"
               />
               <Bar 
                 dataKey="orders" 
-                fill="#10b981" 
-                radius={[12, 12, 0, 0]} 
-                animationDuration={1500}
-                animationBegin={200}
+                fill="url(#gradSuccess)"
+                radius={[10, 10, 2, 2]} 
+                animationDuration={1400}
+                animationBegin={160}
+                animationEasing="ease-out"
               />
             </BarChart>
           </ResponsiveContainer>
@@ -418,6 +454,190 @@ function Dashboard() {
           ))}
         </div>
       </Card>
+
+      {/* Business Intelligence Section */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* Traffic Sources */}
+        <Card className="animate-fade-in border-0 shadow-xl" style={{ animationDelay: '1100ms' }}>
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Traffic Sources</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Where your visitors come from</p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center">
+              <Globe className="text-sky-600 dark:text-sky-400" size={20} />
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart>
+              <Pie
+                data={trafficSources}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                innerRadius={70}
+                outerRadius={105}
+                paddingAngle={3}
+                cornerRadius={12}
+                stroke={chart.isDark ? 'rgba(15,23,42,0.65)' : '#ffffff'}
+                strokeWidth={2}
+                animationDuration={1600}
+                animationEasing="ease-out"
+              >
+                {trafficSources.map((entry, index) => (
+                  <Cell key={`src-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip content={<ChartTooltip valueFormatter={(v) => `${v}%`} />} />
+              <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
+                <tspan x="50%" className="fill-gray-900 dark:fill-gray-100 text-[20px] font-bold">
+                  100%
+                </tspan>
+                <tspan x="50%" dy="20" className="fill-gray-500 dark:fill-gray-400 text-[12px]">
+                  Total traffic
+                </tspan>
+              </text>
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="grid grid-cols-2 gap-3 mt-2">
+            {trafficSources.map((s, idx) => {
+              return (
+              <div key={s.name} className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                  <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{s.name}</span>
+                </div>
+                <span className="text-sm font-bold text-gray-900 dark:text-gray-100 tabular-nums">
+                  <CountUp end={s.value} duration={0.9} delay={1.2 + idx * 0.09} suffix="%" preserveValue />
+                </span>
+              </div>
+            )})}
+          </div>
+        </Card>
+
+        {/* Conversion Funnel */}
+        <Card className="animate-fade-in border-0 shadow-xl" style={{ animationDelay: '1200ms' }}>
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Conversion Funnel</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">From visit to payment</p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+              <Target className="text-violet-600 dark:text-violet-400" size={20} />
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={funnelData} layout="vertical" margin={{ top: 8, right: 16, left: 10, bottom: 8 }}>
+              <ChartDefs />
+              <CartesianGrid {...chart.grid} />
+              <XAxis type="number" {...chart.axis} />
+              <YAxis type="category" dataKey="stage" {...chart.axis} width={110} />
+              <Tooltip content={<ChartTooltip />} cursor={{ fill: chart.isDark ? 'rgba(148,163,184,0.06)' : 'rgba(148,163,184,0.10)' }} />
+              <Bar
+                dataKey="value"
+                fill="url(#gradPrimary)"
+                radius={[10, 10, 10, 10]}
+                animationDuration={1500}
+                animationEasing="ease-out"
+              />
+            </BarChart>
+          </ResponsiveContainer>
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            <div className="p-3 rounded-xl border border-gray-200 dark:border-gray-700">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Checkout → Paid</p>
+              <p className="text-lg font-bold text-gray-900 dark:text-gray-100 tabular-nums">
+                <CountUp
+                  end={Math.round((funnelData[3].value / funnelData[2].value) * 100)}
+                  duration={0.9}
+                  delay={1.3}
+                  suffix="%"
+                  preserveValue
+                />
+              </p>
+            </div>
+            <div className="p-3 rounded-xl border border-gray-200 dark:border-gray-700">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Visit → Paid</p>
+              <p className="text-lg font-bold text-gray-900 dark:text-gray-100 tabular-nums">
+                <CountUp
+                  end={Math.round((funnelData[3].value / funnelData[0].value) * 100)}
+                  duration={0.9}
+                  delay={1.38}
+                  suffix="%"
+                  preserveValue
+                />
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Goals & Insights */}
+        <Card className="animate-fade-in border-0 shadow-xl" style={{ animationDelay: '1300ms' }}>
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Goals & Insights</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Track targets & quick wins</p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+              <CheckCircle2 className="text-emerald-600 dark:text-emerald-400" size={20} />
+            </div>
+          </div>
+
+          <div className="space-y-5">
+            {goals.map((g) => {
+              const pct = goalProgress(g.current, g.target)
+              return (
+                <div key={g.label}>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{g.label}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 tabular-nums">
+                      {pct}%
+                    </p>
+                  </div>
+                  <div className="h-2.5 w-full rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                    <div className={`h-full ${g.color}`} style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="flex items-center justify-between mt-2 text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+                    <span>
+                      <CountUp end={g.current} duration={1.0} delay={1.35} separator="," preserveValue />
+                    </span>
+                    <span>
+                      <CountUp end={g.target} duration={1.0} delay={1.45} separator="," preserveValue />
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Today’s insights</p>
+            <div className="space-y-2">
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60">
+                <span className="mt-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Revenue pacing is strong</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">You’re trending above last month by +12.5%.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60">
+                <span className="mt-0.5 h-2.5 w-2.5 rounded-full bg-amber-500" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Low stock needs attention</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">2 products are close to the threshold.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60">
+                <span className="mt-0.5 h-2.5 w-2.5 rounded-full bg-sky-500" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Organic traffic leads</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Organic contributes ~42% of total visits.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
     </div>
   )
 }

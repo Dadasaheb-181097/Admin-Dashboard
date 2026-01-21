@@ -66,6 +66,7 @@ function Sidebar({ isOpen, setIsOpen, collapsed, setCollapsed }) {
     return expanded
   })
   const [hoveredItem, setHoveredItem] = useState(null)
+  const [hoverExpand, setHoverExpand] = useState(false)
 
   // Auto-expand when navigating to sub-routes
   useEffect(() => {
@@ -100,11 +101,11 @@ function Sidebar({ isOpen, setIsOpen, collapsed, setCollapsed }) {
     }
   }
 
-  // Sidebar width based on state (only applies on desktop)
-  const sidebarWidth = {
-    expanded: 'w-64',
-    collapsed: 'w-20',
-    minimal: 'w-0'
+  // Sidebar width based on state (desktop only)
+  const sidebarWidthLg = {
+    expanded: 'lg:w-64',
+    collapsed: 'lg:w-20',
+    minimal: 'lg:w-0'
   }
 
   const isCollapsed = collapsed === 'collapsed'
@@ -123,8 +124,16 @@ function Sidebar({ isOpen, setIsOpen, collapsed, setCollapsed }) {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
   
+  // When partially collapsed on desktop, hover should overlay-expand the sidebar
+  const isHoverExpanded = !isMobile && isCollapsed && hoverExpand
+
   // On mobile, always show full width when open
-  const effectiveExpanded = isMobile && isOpen ? true : isExpanded
+  const effectiveExpanded = isMobile && isOpen ? true : (isExpanded || isHoverExpanded)
+  const showTooltips = isCollapsed && !isHoverExpanded
+
+  useEffect(() => {
+    if (!isCollapsed) setHoverExpand(false)
+  }, [isCollapsed])
 
   return (
     <>
@@ -136,20 +145,32 @@ function Sidebar({ isOpen, setIsOpen, collapsed, setCollapsed }) {
         />
       )}
 
-      {/* Sidebar */}
-      <aside className={`
-        fixed lg:static inset-y-0 left-0 z-30
-        ${isMobile ? 'w-64' : sidebarWidth[collapsed]}
-        bg-white dark:bg-gray-800 shadow-lg dark:shadow-xl
-        transform transition-all duration-300 ease-in-out
-        border-r border-gray-200 dark:border-gray-700
-        flex flex-col h-full
-        overflow-hidden
-        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        ${isMinimal && !isMobile ? 'lg:w-0' : ''}
-      `}>
+      {/* Sidebar (desktop reserves width; hover expands as overlay) */}
+      <div className={`relative flex-shrink-0 h-full w-0 ${sidebarWidthLg[collapsed]}`}>
+        <aside
+          onMouseEnter={() => {
+            if (!isMobile && isCollapsed) setHoverExpand(true)
+          }}
+          onMouseLeave={() => {
+            if (!isMobile && isCollapsed) {
+              setHoverExpand(false)
+              setHoveredItem(null)
+            }
+          }}
+          className={`
+            fixed lg:absolute inset-y-0 left-0 ${isHoverExpanded ? 'z-50' : 'z-30'}
+            w-64 ${isHoverExpanded ? 'lg:w-64' : sidebarWidthLg[collapsed]}
+            bg-white dark:bg-gray-800 shadow-lg dark:shadow-xl
+            transform transition-all duration-300 ease-in-out
+            border-r border-gray-200 dark:border-gray-700
+            flex flex-col h-full
+            overflow-hidden
+            ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          `}
+        >
         {/* Header - Fixed at top */}
-        <div className={`flex items-center justify-between h-16 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 transition-all duration-300 ${
+        <div className={`flex items-center gap-2 h-16 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 transition-all duration-300 
+        ${
           effectiveExpanded ? 'px-6' : isCollapsed ? 'px-3 justify-center' : 'px-0'
         }`}>
           {!isMinimal && (
@@ -163,10 +184,12 @@ function Sidebar({ isOpen, setIsOpen, collapsed, setCollapsed }) {
                     Admin Panel
                   </h1>
                 </div>
+                // null
               ) : (
                 <div className="w-8 h-8 rounded-lg bg-primary-500 dark:bg-primary-600 flex items-center justify-center text-white font-bold text-sm">
                   <LayoutDashboard size={20} />
                 </div>
+                // null
               )}
               {/* Mobile Close Button */}
               <button
@@ -210,11 +233,11 @@ function Sidebar({ isOpen, setIsOpen, collapsed, setCollapsed }) {
                   <div 
                     key={item.path} 
                     className="mb-2 relative"
-                    onMouseEnter={() => isCollapsed && setHoveredItem(item.path)}
-                    onMouseLeave={() => isCollapsed && setHoveredItem(null)}
+                    onMouseEnter={() => showTooltips && setHoveredItem(item.path)}
+                    onMouseLeave={() => showTooltips && setHoveredItem(null)}
                   >
                     {/* Tooltip for collapsed state */}
-                    {isCollapsed && hoveredItem === item.path && (
+                    {showTooltips && hoveredItem === item.path && (
                       <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-lg shadow-lg z-50 whitespace-nowrap animate-fade-in">
                         {item.label}
                         <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45"></div>
@@ -224,14 +247,14 @@ function Sidebar({ isOpen, setIsOpen, collapsed, setCollapsed }) {
                     {/* Main Menu Item - Collapsible */}
                     <button
                       onClick={() => {
-                        if (isCollapsed) {
+                        if (isCollapsed && !isHoverExpanded) {
                           setCollapsed('expanded')
                         } else {
                           toggleExpand(item.path)
                         }
                       }}
-                      className={`w-full flex items-center justify-between rounded-lg transition-all duration-200 group ${
-                        isExpanded ? 'px-4 py-3' : 'px-3 py-3 justify-center'
+                      className={`w-full flex items-center gap-2 rounded-lg transition-all duration-200 group ${
+                        effectiveExpanded ? 'px-4 py-3' : 'px-3 py-3 justify-center'
                       } ${
                         isManagementActive
                           ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 font-semibold shadow-sm scale-100'
@@ -291,11 +314,11 @@ function Sidebar({ isOpen, setIsOpen, collapsed, setCollapsed }) {
                 <div
                   key={item.path}
                   className="mb-2 relative"
-                  onMouseEnter={() => isCollapsed && setHoveredItem(item.path)}
-                  onMouseLeave={() => isCollapsed && setHoveredItem(null)}
+                  onMouseEnter={() => showTooltips && setHoveredItem(item.path)}
+                  onMouseLeave={() => showTooltips && setHoveredItem(null)}
                 >
                   {/* Tooltip for collapsed state */}
-                  {isCollapsed && hoveredItem === item.path && (
+                  {showTooltips && hoveredItem === item.path && (
                     <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-lg shadow-lg z-50 whitespace-nowrap animate-fade-in">
                       {item.label}
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45"></div>
@@ -315,7 +338,7 @@ function Sidebar({ isOpen, setIsOpen, collapsed, setCollapsed }) {
                     }
                     onClick={() => {
                       if (isMobile) setIsOpen(false)
-                      if (isCollapsed && !isMobile) setCollapsed('expanded')
+                      if (isCollapsed && !isMobile && !isHoverExpanded) setCollapsed('expanded')
                     }}
                   >
                     <Icon size={20} className={effectiveExpanded ? 'mr-3' : ''} />
@@ -343,11 +366,11 @@ function Sidebar({ isOpen, setIsOpen, collapsed, setCollapsed }) {
                 <div
                   key={item.path}
                   className="mb-2 relative"
-                  onMouseEnter={() => isCollapsed && setHoveredItem(item.path)}
-                  onMouseLeave={() => isCollapsed && setHoveredItem(null)}
+                  onMouseEnter={() => showTooltips && setHoveredItem(item.path)}
+                  onMouseLeave={() => showTooltips && setHoveredItem(null)}
                 >
                   {/* Tooltip for collapsed state */}
-                  {isCollapsed && hoveredItem === item.path && (
+                  {showTooltips && hoveredItem === item.path && (
                     <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-lg shadow-lg z-50 whitespace-nowrap animate-fade-in">
                       {item.label}
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45"></div>
@@ -367,7 +390,7 @@ function Sidebar({ isOpen, setIsOpen, collapsed, setCollapsed }) {
                     }
                     onClick={() => {
                       if (isMobile) setIsOpen(false)
-                      if (isCollapsed && !isMobile) setCollapsed('expanded')
+                      if (isCollapsed && !isMobile && !isHoverExpanded) setCollapsed('expanded')
                     }}
                   >
                     <Icon size={20} className={effectiveExpanded ? 'mr-3' : ''} />
@@ -397,7 +420,8 @@ function Sidebar({ isOpen, setIsOpen, collapsed, setCollapsed }) {
             </div>
           </div>
         )}
-      </aside>
+        </aside>
+      </div>
     </>
   )
 }

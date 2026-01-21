@@ -5,6 +5,8 @@ import { Users, UserPlus, TrendingUp, Award } from 'lucide-react'
 import Card from '../../components/UI/Card'
 import Badge from '../../components/UI/Badge'
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import ChartTooltip from '../../components/Charts/ChartTooltip'
+import { useChartTheme, chartPalette, chartColors } from '../../components/Charts/useChartTheme'
 
 const customerData = [
   { month: 'Jan', new: 45, returning: 120 },
@@ -30,6 +32,7 @@ const topCustomers = [
 ]
 
 function CustomerReport() {
+  const chart = useChartTheme()
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
@@ -93,30 +96,27 @@ function CustomerReport() {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Customer Growth</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={customerData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
-              <XAxis dataKey="month" className="text-gray-600 dark:text-gray-400" />
-              <YAxis className="text-gray-600 dark:text-gray-400" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'var(--tw-color-gray-800)', 
-                  border: '1px solid var(--tw-color-gray-700)',
-                  borderRadius: '8px'
-                }} 
-              />
-              <Legend />
+              <CartesianGrid {...chart.grid} />
+              <XAxis dataKey="month" {...chart.axis} />
+              <YAxis {...chart.axis} />
+              <Tooltip content={<ChartTooltip />} cursor={{ fill: chart.isDark ? 'rgba(148,163,184,0.06)' : 'rgba(148,163,184,0.10)' }} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
               <Bar 
                 dataKey="new" 
-                fill="#0ea5e9" 
+                fill={chartColors.primary}
                 name="New Customers"
-                radius={[8, 8, 0, 0]}
-                animationDuration={1000}
+                radius={[10, 10, 2, 2]}
+                animationDuration={1300}
+                animationEasing="ease-out"
               />
               <Bar 
                 dataKey="returning" 
-                fill="#10b981" 
+                fill={chartColors.success}
                 name="Returning Customers"
-                radius={[8, 8, 0, 0]}
-                animationDuration={1200}
+                radius={[10, 10, 2, 2]}
+                animationDuration={1300}
+                animationBegin={160}
+                animationEasing="ease-out"
               />
             </BarChart>
           </ResponsiveContainer>
@@ -132,22 +132,22 @@ function CustomerReport() {
                 cy="50%"
                 labelLine={false}
                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                outerRadius={100}
+                innerRadius={60}
+                outerRadius={105}
                 fill="#8884d8"
                 dataKey="value"
-                animationDuration={1000}
+                paddingAngle={3}
+                cornerRadius={10}
+                stroke={chart.isDark ? 'rgba(15,23,42,0.65)' : '#ffffff'}
+                strokeWidth={2}
+                animationDuration={1400}
+                animationEasing="ease-out"
               >
                 {customerSegments.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
+                  <Cell key={`cell-${index}`} fill={entry.color || chartPalette[index % chartPalette.length]} />
                 ))}
               </Pie>
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'var(--tw-color-gray-800)', 
-                  border: '1px solid var(--tw-color-gray-700)',
-                  borderRadius: '8px'
-                }} 
-              />
+              <Tooltip content={<ChartTooltip />} />
             </PieChart>
           </ResponsiveContainer>
         </Card>

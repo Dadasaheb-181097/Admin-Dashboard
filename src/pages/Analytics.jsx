@@ -9,8 +9,9 @@ import { salesData, revenueData } from '../data/sampleData'
 import Drawer from '../components/UI/Drawer'
 import Button from '../components/UI/Button'
 import Card from '../components/UI/Card'
-
-const COLORS = ['#0ea5e9', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444']
+import ChartTooltip from '../components/Charts/ChartTooltip'
+import ChartDefs from '../components/Charts/ChartDefs'
+import { useChartTheme, chartPalette, chartColors } from '../components/Charts/useChartTheme'
 
 const categoryData = [
   { name: 'Electronics', value: 45, fullMark: 100 },
@@ -20,6 +21,7 @@ const categoryData = [
 ]
 
 function Analytics() {
+  const chart = useChartTheme()
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false)
   const [filters, setFilters] = useState({
     dateRange: 'Last 6 months',
@@ -63,25 +65,22 @@ function Analytics() {
                 cy="50%"
                 labelLine={false}
                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                outerRadius={100}
+                innerRadius={60}
+                outerRadius={105}
                 fill="#8884d8"
                 dataKey="value"
-                animationDuration={1500}
-                animationBegin={0}
+                paddingAngle={3}
+                cornerRadius={10}
+                stroke={chart.isDark ? 'rgba(15,23,42,0.65)' : '#ffffff'}
+                strokeWidth={2}
+                animationDuration={1600}
+                animationEasing="ease-out"
               >
                 {revenueData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={entry.color || chartPalette[index % chartPalette.length]} />
                 ))}
               </Pie>
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                  border: '1px solid #e5e7eb', 
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-                  padding: '12px'
-                }}
-              />
+              <Tooltip content={<ChartTooltip />} />
             </PieChart>
           </ResponsiveContainer>
         </Card>
@@ -96,34 +95,26 @@ function Analytics() {
           </div>
           <ResponsiveContainer width="100%" height={300}>
             <RadarChart data={categoryData}>
-              <PolarGrid stroke="#e5e7eb" className="dark:stroke-gray-700" />
+              <PolarGrid stroke={chart.gridStroke} />
               <PolarAngleAxis 
                 dataKey="name" 
-                tick={{ fill: 'currentColor', fontSize: 12 }}
-                className="text-gray-600 dark:text-gray-400"
+                tick={{ fill: chart.tickColor, fontSize: 12 }}
               />
               <PolarRadiusAxis 
-                tick={{ fill: 'currentColor', fontSize: 12 }}
-                className="text-gray-600 dark:text-gray-400"
+                tick={{ fill: chart.tickColor, fontSize: 12 }}
               />
               <Radar 
                 name="Performance" 
                 dataKey="value" 
-                stroke="#0ea5e9" 
-                fill="#0ea5e9" 
-                fillOpacity={0.6}
+                stroke={chartColors.primary}
+                fill={chartColors.primary}
+                fillOpacity={chart.isDark ? 0.35 : 0.5}
+                strokeWidth={2.5}
                 animationDuration={1500}
-                animationBegin={200}
+                animationBegin={120}
+                animationEasing="ease-out"
               />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                  border: '1px solid #e5e7eb', 
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-                  padding: '12px'
-                }}
-              />
+              <Tooltip content={<ChartTooltip />} />
             </RadarChart>
           </ResponsiveContainer>
         </Card>
@@ -148,55 +139,42 @@ function Analytics() {
         </div>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={salesData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" />
-            <XAxis 
-              dataKey="month" 
-              tick={{ fill: 'currentColor', fontSize: 12 }}
-              className="text-gray-600 dark:text-gray-400"
-            />
-            <YAxis 
-              tick={{ fill: 'currentColor', fontSize: 12 }}
-              className="text-gray-600 dark:text-gray-400"
-            />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                border: '1px solid #e5e7eb', 
-                borderRadius: '12px',
-                boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-                padding: '12px'
-              }}
-            />
-            <Legend />
+            <CartesianGrid {...chart.grid} />
+            <XAxis dataKey="month" {...chart.axis} />
+            <YAxis {...chart.axis} />
+            <Tooltip content={<ChartTooltip />} cursor={{ stroke: chart.gridStroke, strokeWidth: 1 }} />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
             <Line 
               type="monotone" 
               dataKey="sales" 
-              stroke="#0ea5e9" 
-              strokeWidth={3} 
-              dot={{ fill: '#0ea5e9', r: 5, strokeWidth: 2, stroke: '#fff' }} 
-              activeDot={{ r: 8 }}
+              stroke={chartColors.primary}
+              strokeWidth={3.25}
+              dot={false}
+              activeDot={{ r: 6, strokeWidth: 0 }}
               animationDuration={1500}
-              animationBegin={0}
+              animationEasing="ease-out"
             />
             <Line 
               type="monotone" 
               dataKey="orders" 
-              stroke="#10b981" 
-              strokeWidth={3} 
-              dot={{ fill: '#10b981', r: 5, strokeWidth: 2, stroke: '#fff' }} 
-              activeDot={{ r: 8 }}
+              stroke={chartColors.success}
+              strokeWidth={3}
+              dot={false}
+              activeDot={{ r: 6, strokeWidth: 0 }}
               animationDuration={1500}
-              animationBegin={200}
+              animationBegin={140}
+              animationEasing="ease-out"
             />
             <Line 
               type="monotone" 
               dataKey="users" 
-              stroke="#8b5cf6" 
-              strokeWidth={3} 
-              dot={{ fill: '#8b5cf6', r: 5, strokeWidth: 2, stroke: '#fff' }} 
-              activeDot={{ r: 8 }}
+              stroke={chartColors.violet}
+              strokeWidth={3}
+              dot={false}
+              activeDot={{ r: 6, strokeWidth: 0 }}
               animationDuration={1500}
-              animationBegin={400}
+              animationBegin={280}
+              animationEasing="ease-out"
             />
           </LineChart>
         </ResponsiveContainer>
@@ -213,39 +191,26 @@ function Analytics() {
           </div>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={salesData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" />
-              <XAxis 
-                dataKey="month" 
-                tick={{ fill: 'currentColor', fontSize: 12 }}
-                className="text-gray-600 dark:text-gray-400"
-              />
-              <YAxis 
-                tick={{ fill: 'currentColor', fontSize: 12 }}
-                className="text-gray-600 dark:text-gray-400"
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                  border: '1px solid #e5e7eb', 
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-                  padding: '12px'
-                }}
-              />
-              <Legend />
+              <ChartDefs />
+              <CartesianGrid {...chart.grid} />
+              <XAxis dataKey="month" {...chart.axis} />
+              <YAxis {...chart.axis} />
+              <Tooltip content={<ChartTooltip />} cursor={{ fill: chart.isDark ? 'rgba(148,163,184,0.06)' : 'rgba(148,163,184,0.10)' }} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
               <Bar 
                 dataKey="sales" 
-                fill="#0ea5e9" 
-                radius={[12, 12, 0, 0]} 
-                animationDuration={1500}
-                animationBegin={0}
+                fill="url(#gradPrimary)"
+                radius={[10, 10, 2, 2]} 
+                animationDuration={1400}
+                animationEasing="ease-out"
               />
               <Bar 
                 dataKey="orders" 
-                fill="#10b981" 
-                radius={[12, 12, 0, 0]} 
-                animationDuration={1500}
-                animationBegin={200}
+                fill="url(#gradSuccess)"
+                radius={[10, 10, 2, 2]} 
+                animationDuration={1400}
+                animationBegin={160}
+                animationEasing="ease-out"
               />
             </BarChart>
           </ResponsiveContainer>
@@ -260,40 +225,22 @@ function Analytics() {
           </div>
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={salesData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4}/>
-                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" />
-              <XAxis 
-                dataKey="month" 
-                tick={{ fill: 'currentColor', fontSize: 12 }}
-                className="text-gray-600 dark:text-gray-400"
-              />
-              <YAxis 
-                tick={{ fill: 'currentColor', fontSize: 12 }}
-                className="text-gray-600 dark:text-gray-400"
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                  border: '1px solid #e5e7eb', 
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-                  padding: '12px'
-                }}
-              />
+              <ChartDefs />
+              <CartesianGrid {...chart.grid} />
+              <XAxis dataKey="month" {...chart.axis} />
+              <YAxis {...chart.axis} />
+              <Tooltip content={<ChartTooltip />} cursor={{ stroke: chart.gridStroke, strokeWidth: 1 }} />
               <Area 
                 type="monotone" 
                 dataKey="users" 
-                stroke="#8b5cf6" 
+                stroke={chartColors.violet}
                 fillOpacity={1} 
-                fill="url(#colorUsers)"
-                strokeWidth={3}
+                fill="url(#gradViolet)"
+                strokeWidth={3.25}
+                dot={false}
+                activeDot={{ r: 6, strokeWidth: 0 }}
                 animationDuration={1500}
-                animationBegin={0}
+                animationEasing="ease-out"
               />
             </AreaChart>
           </ResponsiveContainer>

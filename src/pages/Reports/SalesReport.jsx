@@ -5,6 +5,9 @@ import { TrendingUp, DollarSign, ShoppingCart, Calendar } from 'lucide-react'
 import Card from '../../components/UI/Card'
 import Badge from '../../components/UI/Badge'
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import ChartTooltip from '../../components/Charts/ChartTooltip'
+import ChartDefs from '../../components/Charts/ChartDefs'
+import { useChartTheme, chartColors } from '../../components/Charts/useChartTheme'
 
 const salesData = [
   { date: 'Week 1', sales: 12000, target: 15000 },
@@ -22,6 +25,7 @@ const topProducts = [
 ]
 
 function SalesReport() {
+  const chart = useChartTheme()
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
@@ -77,40 +81,37 @@ function SalesReport() {
         </div>
         <ResponsiveContainer width="100%" height={350}>
           <AreaChart data={salesData}>
-            <defs>
-              <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
-            <XAxis dataKey="date" className="text-gray-600 dark:text-gray-400" />
-            <YAxis className="text-gray-600 dark:text-gray-400" />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: 'var(--tw-color-gray-800)', 
-                border: '1px solid var(--tw-color-gray-700)',
-                borderRadius: '8px'
-              }} 
-            />
-            <Legend />
+            <ChartDefs />
+            <CartesianGrid {...chart.grid} />
+            <XAxis dataKey="date" {...chart.axis} />
+            <YAxis {...chart.axis} />
+            <Tooltip content={<ChartTooltip />} cursor={{ stroke: chart.gridStroke, strokeWidth: 1 }} />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
             <Area 
               type="monotone" 
               dataKey="sales" 
-              stroke="#0ea5e9" 
+              stroke={chartColors.primary}
               fillOpacity={1}
-              fill="url(#colorSales)"
+              fill="url(#gradPrimary)"
               name="Actual Sales"
-              animationDuration={1000}
+              strokeWidth={3.25}
+              dot={false}
+              activeDot={{ r: 6, strokeWidth: 0 }}
+              animationDuration={1400}
+              animationEasing="ease-out"
             />
             <Line 
               type="monotone" 
               dataKey="target" 
-              stroke="#10b981" 
-              strokeWidth={2}
+              stroke={chartColors.success}
+              strokeWidth={2.5}
               strokeDasharray="5 5"
               name="Target"
-              animationDuration={1200}
+              dot={false}
+              activeDot={{ r: 5, strokeWidth: 0 }}
+              animationDuration={1400}
+              animationBegin={180}
+              animationEasing="ease-out"
             />
           </AreaChart>
         </ResponsiveContainer>

@@ -5,6 +5,9 @@ import { Package, AlertTriangle, CheckCircle, TrendingDown } from 'lucide-react'
 import Card from '../../components/UI/Card'
 import Badge from '../../components/UI/Badge'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import ChartTooltip from '../../components/Charts/ChartTooltip'
+import ChartDefs from '../../components/Charts/ChartDefs'
+import { useChartTheme, chartColors } from '../../components/Charts/useChartTheme'
 
 const inventoryData = [
   { category: 'Electronics', inStock: 450, lowStock: 25, outOfStock: 5 },
@@ -32,6 +35,7 @@ const lowStockItems = [
 ]
 
 function InventoryReport() {
+  const chart = useChartTheme()
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
@@ -95,37 +99,37 @@ function InventoryReport() {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Stock by Category</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={inventoryData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
-              <XAxis dataKey="category" className="text-gray-600 dark:text-gray-400" angle={-45} textAnchor="end" height={80} />
-              <YAxis className="text-gray-600 dark:text-gray-400" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'var(--tw-color-gray-800)', 
-                  border: '1px solid var(--tw-color-gray-700)',
-                  borderRadius: '8px'
-                }} 
-              />
-              <Legend />
+              <ChartDefs />
+              <CartesianGrid {...chart.grid} />
+              <XAxis dataKey="category" {...chart.axis} angle={-35} textAnchor="end" height={70} />
+              <YAxis {...chart.axis} />
+              <Tooltip content={<ChartTooltip />} cursor={{ fill: chart.isDark ? 'rgba(148,163,184,0.06)' : 'rgba(148,163,184,0.10)' }} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
               <Bar 
                 dataKey="inStock" 
-                fill="#10b981" 
+                fill="url(#gradSuccess)" 
                 name="In Stock"
-                radius={[8, 8, 0, 0]}
-                animationDuration={1000}
+                radius={[10, 10, 2, 2]}
+                animationDuration={1300}
+                animationEasing="ease-out"
               />
               <Bar 
                 dataKey="lowStock" 
-                fill="#f59e0b" 
+                fill="url(#gradAmber)" 
                 name="Low Stock"
-                radius={[8, 8, 0, 0]}
-                animationDuration={1200}
+                radius={[10, 10, 2, 2]}
+                animationDuration={1300}
+                animationBegin={140}
+                animationEasing="ease-out"
               />
               <Bar 
                 dataKey="outOfStock" 
-                fill="#ef4444" 
+                fill="url(#gradRose)" 
                 name="Out of Stock"
-                radius={[8, 8, 0, 0]}
-                animationDuration={1400}
+                radius={[10, 10, 2, 2]}
+                animationDuration={1300}
+                animationBegin={280}
+                animationEasing="ease-out"
               />
             </BarChart>
           </ResponsiveContainer>
@@ -135,32 +139,33 @@ function InventoryReport() {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Stock Movement</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={stockMovement}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
-              <XAxis dataKey="month" className="text-gray-600 dark:text-gray-400" />
-              <YAxis className="text-gray-600 dark:text-gray-400" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'var(--tw-color-gray-800)', 
-                  border: '1px solid var(--tw-color-gray-700)',
-                  borderRadius: '8px'
-                }} 
-              />
-              <Legend />
+              <CartesianGrid {...chart.grid} />
+              <XAxis dataKey="month" {...chart.axis} />
+              <YAxis {...chart.axis} />
+              <Tooltip content={<ChartTooltip />} cursor={{ stroke: chart.gridStroke, strokeWidth: 1 }} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
               <Line 
                 type="monotone" 
                 dataKey="incoming" 
-                stroke="#10b981" 
-                strokeWidth={2}
+                stroke={chartColors.success}
+                strokeWidth={3}
                 name="Incoming"
-                animationDuration={1000}
+                dot={false}
+                activeDot={{ r: 6, strokeWidth: 0 }}
+                animationDuration={1400}
+                animationEasing="ease-out"
               />
               <Line 
                 type="monotone" 
                 dataKey="outgoing" 
-                stroke="#ef4444" 
-                strokeWidth={2}
+                stroke={chartColors.rose}
+                strokeWidth={3}
                 name="Outgoing"
-                animationDuration={1200}
+                dot={false}
+                activeDot={{ r: 6, strokeWidth: 0 }}
+                animationDuration={1400}
+                animationBegin={140}
+                animationEasing="ease-out"
               />
             </LineChart>
           </ResponsiveContainer>

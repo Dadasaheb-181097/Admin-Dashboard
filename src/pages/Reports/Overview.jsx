@@ -4,6 +4,9 @@
 import { FileText, TrendingUp, DollarSign, ShoppingCart } from 'lucide-react'
 import Card from '../../components/UI/Card'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import ChartTooltip from '../../components/Charts/ChartTooltip'
+import ChartDefs from '../../components/Charts/ChartDefs'
+import { useChartTheme, chartColors } from '../../components/Charts/useChartTheme'
 
 const monthlyData = [
   { month: 'Jan', sales: 45000, orders: 320, revenue: 52000 },
@@ -15,6 +18,7 @@ const monthlyData = [
 ]
 
 function Overview() {
+  const chart = useChartTheme()
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
@@ -74,32 +78,33 @@ function Overview() {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Sales Trend</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
-              <XAxis dataKey="month" className="text-gray-600 dark:text-gray-400" />
-              <YAxis className="text-gray-600 dark:text-gray-400" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'var(--tw-color-gray-800)', 
-                  border: '1px solid var(--tw-color-gray-700)',
-                  borderRadius: '8px'
-                }} 
-              />
-              <Legend />
+              <CartesianGrid {...chart.grid} />
+              <XAxis dataKey="month" {...chart.axis} />
+              <YAxis {...chart.axis} />
+              <Tooltip content={<ChartTooltip />} cursor={{ stroke: chart.gridStroke, strokeWidth: 1 }} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
               <Line 
                 type="monotone" 
                 dataKey="sales" 
-                stroke="#0ea5e9" 
-                strokeWidth={2}
+                stroke={chartColors.primary}
+                strokeWidth={3}
                 name="Sales"
-                animationDuration={1000}
+                dot={false}
+                activeDot={{ r: 6, strokeWidth: 0 }}
+                animationDuration={1400}
+                animationEasing="ease-out"
               />
               <Line 
                 type="monotone" 
                 dataKey="revenue" 
-                stroke="#10b981" 
-                strokeWidth={2}
+                stroke={chartColors.success}
+                strokeWidth={3}
                 name="Revenue"
-                animationDuration={1200}
+                dot={false}
+                activeDot={{ r: 6, strokeWidth: 0 }}
+                animationDuration={1400}
+                animationBegin={140}
+                animationEasing="ease-out"
               />
             </LineChart>
           </ResponsiveContainer>
@@ -109,23 +114,19 @@ function Overview() {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Orders by Month</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
-              <XAxis dataKey="month" className="text-gray-600 dark:text-gray-400" />
-              <YAxis className="text-gray-600 dark:text-gray-400" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'var(--tw-color-gray-800)', 
-                  border: '1px solid var(--tw-color-gray-700)',
-                  borderRadius: '8px'
-                }} 
-              />
-              <Legend />
+              <ChartDefs />
+              <CartesianGrid {...chart.grid} />
+              <XAxis dataKey="month" {...chart.axis} />
+              <YAxis {...chart.axis} />
+              <Tooltip content={<ChartTooltip />} cursor={{ fill: chart.isDark ? 'rgba(148,163,184,0.06)' : 'rgba(148,163,184,0.10)' }} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
               <Bar 
                 dataKey="orders" 
-                fill="#0ea5e9" 
+                fill="url(#gradPrimary)"
                 name="Orders"
-                radius={[8, 8, 0, 0]}
-                animationDuration={1000}
+                radius={[10, 10, 2, 2]}
+                animationDuration={1300}
+                animationEasing="ease-out"
               />
             </BarChart>
           </ResponsiveContainer>
