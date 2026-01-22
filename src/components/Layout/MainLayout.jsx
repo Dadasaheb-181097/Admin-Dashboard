@@ -3,6 +3,8 @@ import { Link, useLocation } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import Sidebar from './Sidebar'
 import Header from './Header'
+import ScrollToTop from '../UI/ScrollToTop'
+import ScrollToTopOnRouteChange from '../ScrollToTopOnRouteChange'
 
 function MainLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true) // Mobile sidebar open/close
@@ -51,6 +53,7 @@ function MainLayout({ children }) {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+      <ScrollToTopOnRouteChange />
       <Sidebar 
         isOpen={sidebarOpen} 
         setIsOpen={setSidebarOpen}
@@ -90,6 +93,7 @@ function MainLayout({ children }) {
             {children}
           </div>
         </main>
+        <ScrollToTop />
       </div>
     </div>
   )
