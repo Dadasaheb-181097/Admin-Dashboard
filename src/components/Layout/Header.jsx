@@ -1,6 +1,7 @@
 import { Menu, Bell, Search, Sun, Moon, User, LogOut, Settings, Mail, Phone, ShoppingCart, Package, CheckCircle, AlertCircle, Info, PanelLeftOpen, PanelLeftClose, ChevronsLeft, BarChart3, DollarSign, ClipboardCheck, XCircle, Clock } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTheme } from '../../contexts/ThemeContext'
+import { useAuth } from '../../contexts/AuthContext'
 import Drawer from '../UI/Drawer'
 import Badge from '../UI/Badge'
 import { useNavigate } from 'react-router-dom'
@@ -10,6 +11,7 @@ function Header({ setSidebarOpen, sidebarCollapsed, setSidebarCollapsed }) {
   const [isSnapshotOpen, setIsSnapshotOpen] = useState(false)
   const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false)
   const { theme, toggleTheme } = useTheme()
+  const { user, logout } = useAuth()
   const snapshotRef = useRef(null)
   const navigate = useNavigate()
   // Sample notifications data
@@ -265,11 +267,11 @@ function Header({ setSidebarOpen, sidebarCollapsed, setSidebarCollapsed }) {
           aria-label="User Profile"
         >
           <div className="w-8 h-8 rounded-full bg-primary-500 dark:bg-primary-600 flex items-center justify-center text-white text-xs font-semibold shadow-md">
-            DP
+            {user?.avatar || 'A'}
           </div>
           <div className="hidden md:block text-left">
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Dadaso Patil</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Administrator</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{user?.name || 'Admin'}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{user?.role || 'Administrator'}</p>
           </div>
         </button>
       </div>
@@ -404,11 +406,11 @@ function Header({ setSidebarOpen, sidebarCollapsed, setSidebarCollapsed }) {
           {/* Profile Header */}
           <div className="text-center pb-6 border-b border-gray-200 dark:border-gray-700">
             <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4 shadow-lg">
-              DP
+              {user?.avatar || 'A'}
             </div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Dadaso Patil</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">dadasaheb181097@gmail.com</p>
-            <Badge variant="info">Administrator</Badge>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">{user?.name || 'Admin'}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{user?.email || 'admin@example.com'}</p>
+            <Badge variant="info">{user?.role || 'Administrator'}</Badge>
           </div>
 
           {/* Profile Info */}
@@ -423,28 +425,30 @@ function Header({ setSidebarOpen, sidebarCollapsed, setSidebarCollapsed }) {
                     <User size={18} className="text-gray-400 dark:text-gray-500 mr-3" />
                     <span className="text-sm text-gray-700 dark:text-gray-300">Full Name</span>
                   </div>
-                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Dadaso Patil</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{user?.name || 'Admin'}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                   <div className="flex items-center">
                     <Mail size={18} className="text-gray-400 dark:text-gray-500 mr-3" />
                     <span className="text-sm text-gray-700 dark:text-gray-300">Email</span>
                   </div>
-                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">dadasaheb181097@gmail.com</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{user?.email || 'admin@example.com'}</span>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                  <div className="flex items-center">
-                    <Phone size={18} className="text-gray-400 dark:text-gray-500 mr-3" />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Mobile</span>
+                {user?.mobile && (
+                  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div className="flex items-center">
+                      <Phone size={18} className="text-gray-400 dark:text-gray-500 mr-3" />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">Mobile</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{user.mobile}</span>
                   </div>
-                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">7057986041</span>
-                </div>
+                )}
                 <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                   <div className="flex items-center">
                     <Settings size={18} className="text-gray-400 dark:text-gray-500 mr-3" />
                     <span className="text-sm text-gray-700 dark:text-gray-300">Role</span>
                   </div>
-                  <Badge variant="info">Administrator</Badge>
+                  <Badge variant="info">{user?.role || 'Administrator'}</Badge>
                 </div>
               </div>
             </div>
@@ -469,7 +473,14 @@ function Header({ setSidebarOpen, sidebarCollapsed, setSidebarCollapsed }) {
 
           {/* Logout */}
           <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <button className="w-full flex items-center justify-center px-4 py-3 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+            <button
+              onClick={() => {
+                logout()
+                navigate('/login')
+                setIsProfileDrawerOpen(false)
+              }}
+              className="w-full flex items-center justify-center px-4 py-3 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+            >
               <LogOut size={18} className="mr-2" />
               Sign Out
             </button>

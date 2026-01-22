@@ -19,7 +19,8 @@ import {
   Menu,
   X,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Activity
 } from 'lucide-react'
 
 const mainMenuItems = [
@@ -43,6 +44,7 @@ const mainMenuItems = [
 ]
 
 const settingsMenuItems = [
+  { path: '/activity-logs', icon: Activity, label: 'Activity Logs' },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ]
 

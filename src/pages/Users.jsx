@@ -1,34 +1,80 @@
 /**
  * Users Management Page
  * Features modals for add/edit and drawer for user details
+ * Now with API integration, pagination, bulk actions, and export
  */
-import { useState } from 'react'
-import { Search, Plus, Edit, Trash2, MoreVertical, User, Mail, Shield, Calendar } from 'lucide-react'
-import { users } from '../data/sampleData'
+import { useState, useEffect } from 'react'
+import { Search, Plus, Edit, Trash2, MoreVertical, User, Mail, Shield, Calendar, Download, CheckSquare, Square } from 'lucide-react'
+import { usersAPI, exportToCSV, activityAPI } from '../utils/api'
 import Modal from '../components/UI/Modal'
 import Drawer from '../components/UI/Drawer'
 import Button from '../components/UI/Button'
 import Badge from '../components/UI/Badge'
 import Card from '../components/UI/Card'
+import Pagination from '../components/UI/Pagination'
+import { useToast } from '../contexts/ToastContext'
 
 function Users() {
+  const [users, setUsers] = useState([])
+  const [filteredUsers, setFilteredUsers] = useState([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [roleFilter, setRoleFilter] = useState('All Roles')
+  const [statusFilter, setStatusFilter] = useState('All Status')
+  const [selectedUsers, setSelectedUsers] = useState([])
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     role: 'User',
     status: 'Active',
   })
+  const { success, error: showError } = useToast()
 
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  useEffect(() => {
+    loadUsers()
+  }, [])
+
+  useEffect(() => {
+    filterUsers()
+  }, [users, searchTerm, roleFilter, statusFilter])
+
+  const loadUsers = async () => {
+    try {
+      setLoading(true)
+      const data = await usersAPI.getAll()
+      setUsers(data)
+    } catch (err) {
+      showError('Failed to load users')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const filterUsers = () => {
+    let filtered = users.filter(user =>
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
+    if (roleFilter !== 'All Roles') {
+      filtered = filtered.filter(user => user.role === roleFilter)
+    }
+
+    if (statusFilter !== 'All Status') {
+      filtered = filtered.filter(user => user.status === statusFilter)
+    }
+
+    setFilteredUsers(filtered)
+    setCurrentPage(1)
+  }
 
   const handleAddUser = () => {
     setFormData({ name: '', email: '', role: 'User', status: 'Active' })
@@ -56,20 +102,89 @@ function Users() {
     setIsDeleteModalOpen(true)
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    // Handle form submission here
-    console.log('Form submitted:', formData)
-    setIsAddModalOpen(false)
-    setIsEditModalOpen(false)
-    setFormData({ name: '', email: '', role: 'User', status: 'Active' })
+  const handleBulkDelete = () => {
+    if (selectedUsers.length === 0) {
+      showError('Please select users to delete')
+      return
+    }
+    setIsBulkDeleteModalOpen(true)
   }
 
-  const handleDelete = () => {
-    // Handle delete here
-    console.log('Delete user:', selectedUser)
-    setIsDeleteModalOpen(false)
-    setSelectedUser(null)
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      if (selectedUser) {
+        // Update
+        await usersAPI.update(selectedUser.id, formData)
+        await activityAPI.log('Updated User', `Updated user: ${formData.name}`)
+        success('User updated successfully')
+        setIsEditModalOpen(false)
+      } else {
+        // Create
+        await usersAPI.create(formData)
+        await activityAPI.log('Created User', `Created new user: ${formData.name}`)
+        success('User created successfully')
+        setIsAddModalOpen(false)
+      }
+      setFormData({ name: '', email: '', role: 'User', status: 'Active' })
+      setSelectedUser(null)
+      loadUsers()
+    } catch (err) {
+      showError('Failed to save user')
+    }
+  }
+
+  const handleDelete = async () => {
+    try {
+      await usersAPI.delete(selectedUser.id)
+      await activityAPI.log('Deleted User', `Deleted user: ${selectedUser.name}`)
+      success('User deleted successfully')
+      setIsDeleteModalOpen(false)
+      setSelectedUser(null)
+      loadUsers()
+    } catch (err) {
+      showError('Failed to delete user')
+    }
+  }
+
+  const handleBulkDeleteConfirm = async () => {
+    try {
+      await usersAPI.deleteMany(selectedUsers)
+      await activityAPI.log('Bulk Deleted Users', `Deleted ${selectedUsers.length} users`)
+      success(`${selectedUsers.length} users deleted successfully`)
+      setIsBulkDeleteModalOpen(false)
+      setSelectedUsers([])
+      loadUsers()
+    } catch (err) {
+      showError('Failed to delete users')
+    }
+  }
+
+  const handleExport = () => {
+    try {
+      exportToCSV(filteredUsers, `users-${new Date().toISOString().split('T')[0]}.csv`)
+      success('Users exported successfully')
+    } catch (err) {
+      showError('Failed to export users')
+    }
+  }
+
+  const toggleSelectUser = (userId) => {
+    setSelectedUsers(prev =>
+      prev.includes(userId)
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    )
+  }
+
+  const toggleSelectAll = () => {
+    const currentPageUserIds = paginatedUsers.map(u => u.id)
+    const allSelected = currentPageUserIds.every(id => selectedUsers.includes(id))
+    if (allSelected) {
+      setSelectedUsers(prev => prev.filter(id => !currentPageUserIds.includes(id)))
+    } else {
+      setSelectedUsers(prev => [...new Set([...prev, ...currentPageUserIds])])
+    }
   }
 
   const getStatusBadge = (status) => {
@@ -89,6 +204,20 @@ function Users() {
     return <Badge variant={variants[role] || 'default'}>{role}</Badge>
   }
 
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage)
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -96,10 +225,22 @@ function Users() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Users</h1>
           <p className="text-gray-600 dark:text-gray-400">Manage all your users and their permissions</p>
         </div>
-        <Button variant="primary" onClick={handleAddUser} className="flex items-center">
-          <Plus size={20} className="mr-2" />
-          Add User
-        </Button>
+        <div className="flex space-x-3">
+          {selectedUsers.length > 0 && (
+            <Button variant="danger" onClick={handleBulkDelete} className="flex items-center">
+              <Trash2 size={20} className="mr-2" />
+              Delete ({selectedUsers.length})
+            </Button>
+          )}
+          <Button variant="secondary" onClick={handleExport} className="flex items-center">
+            <Download size={20} className="mr-2" />
+            Export
+          </Button>
+          <Button variant="primary" onClick={handleAddUser} className="flex items-center">
+            <Plus size={20} className="mr-2" />
+            Add User
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filters */}
@@ -115,13 +256,21 @@ function Users() {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
             />
           </div>
-          <select className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors">
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
+          >
             <option>All Roles</option>
             <option>Admin</option>
             <option>Moderator</option>
             <option>User</option>
           </select>
-          <select className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
+          >
             <option>All Status</option>
             <option>Active</option>
             <option>Inactive</option>
@@ -135,6 +284,18 @@ function Users() {
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
               <tr>
+                <th className="px-6 py-3 text-left">
+                  <button
+                    onClick={toggleSelectAll}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    {paginatedUsers.length > 0 && paginatedUsers.every(u => selectedUsers.includes(u.id)) ? (
+                      <CheckSquare size={20} />
+                    ) : (
+                      <Square size={20} />
+                    )}
+                  </button>
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">User</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Email</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Role</th>
@@ -144,70 +305,92 @@ function Users() {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-semibold shadow-md">
-                        {user.avatar}
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{user.name}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-600 dark:text-gray-400">{user.email}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getRoleBadge(user.role)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(user.status)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                    {new Date(user.joinDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end space-x-2">
-                      <button 
-                        onClick={() => handleEditUser(user)}
-                        className="text-primary-600 dark:text-primary-400 hover:text-primary-900 dark:hover:text-primary-300 p-2 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
-                        title="Edit"
-                      >
-                        <Edit size={18} />
-                      </button>
-                      <button 
-                        onClick={() => handleViewUser(user)}
-                        className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                        title="View Details"
-                      >
-                        <User size={18} />
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteUser(user)}
-                        className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
+              {paginatedUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                    No users found
                   </td>
                 </tr>
-              ))}
+              ) : (
+                paginatedUsers.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => toggleSelectUser(user.id)}
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      >
+                        {selectedUsers.includes(user.id) ? (
+                          <CheckSquare size={20} className="text-primary-600 dark:text-primary-400" />
+                        ) : (
+                          <Square size={20} />
+                        )}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-semibold shadow-md">
+                          {user.avatar}
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{user.name}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-600 dark:text-gray-400">{user.email}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getRoleBadge(user.role)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getStatusBadge(user.status)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                      {new Date(user.joinDate).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end space-x-2">
+                        <button 
+                          onClick={() => handleEditUser(user)}
+                          className="text-primary-600 dark:text-primary-400 hover:text-primary-900 dark:hover:text-primary-300 p-2 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
+                          title="Edit"
+                        >
+                          <Edit size={18} />
+                        </button>
+                        <button 
+                          onClick={() => handleViewUser(user)}
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                          title="View Details"
+                        >
+                          <User size={18} />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteUser(user)}
+                          className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </Card>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-600 dark:text-gray-400">Showing 1 to {filteredUsers.length} of {filteredUsers.length} users</p>
-        <div className="flex space-x-2">
-          <Button variant="secondary" size="sm">Previous</Button>
-          <Button variant="secondary" size="sm">Next</Button>
-        </div>
-      </div>
+      {filteredUsers.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          totalItems={filteredUsers.length}
+          onItemsPerPageChange={setItemsPerPage}
+        />
+      )}
 
       {/* Add User Modal */}
       <Modal
@@ -457,6 +640,28 @@ function Users() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Bulk Delete Confirmation Modal */}
+      <Modal
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        title="Delete Multiple Users"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600 dark:text-gray-400">
+            Are you sure you want to delete <span className="font-semibold text-gray-900 dark:text-gray-100">{selectedUsers.length}</span> user(s)? This action cannot be undone.
+          </p>
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button variant="secondary" onClick={() => setIsBulkDeleteModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleBulkDeleteConfirm}>
+              Delete {selectedUsers.length} User(s)
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   )
